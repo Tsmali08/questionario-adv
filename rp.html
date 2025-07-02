@@ -2,15 +2,17 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Questionário Pré-Treino/Jogo</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <title>Questionário Pré-Treino/Jogo - Firebase</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      max-width: 900px;
+      max-width: 700px;
       margin: auto;
     }
     label {
@@ -21,33 +23,34 @@
       width: 100%;
       padding: 8px;
       margin-top: 5px;
+      box-sizing: border-box;
     }
     button {
       margin-top: 20px;
       padding: 10px;
       width: 100%;
+      cursor: pointer;
+    }
+    .respostas {
+      margin-top: 30px;
+      overflow-x: auto;
     }
     table {
-      width: 100%;
       border-collapse: collapse;
-      margin-top: 30px;
+      width: 100%;
     }
     th, td {
-      border: 1px solid #ccc;
+      border: 1px solid #333;
       padding: 6px;
       text-align: center;
     }
     th {
       background-color: #eee;
     }
-    .delete-btn {
-      color: red;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
-  <img src="imagens/adv.png" alt="Logo do Clube" style="max-width: 200px; display: block; margin: auto;">
+
   <h1>ADV Juniores 2025/2026</h1>
   <h4>Questionário Pré-Treino/Jogo</h4>
 
@@ -90,118 +93,131 @@
   <button onclick="salvarRespostas()">Enviar Respostas</button>
   <button onclick="pedirSenha()">Ver Respostas (Admin)</button>
 
-  <div id="tabelaRespostas"></div>
+  <div class="respostas" id="respostas"></div>
 
   <script>
-    // CONFIGURE AQUI O SEU FIREBASE
-    const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_DOMINIO.firebaseapp.com",
-      projectId: "SEU_PROJECT_ID",
-      storageBucket: "SEU_BUCKET.appspot.com",
-      messagingSenderId: "SEU_ID",
-      appId: "SEU_APP_ID"
-    };
+    rules_version = '2';
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-    function salvarRespostas() {
-      const data = new Date();
-      const dataFormatada = data.toLocaleDateString('pt-PT');
+    // This rule allows anyone with your Firestore database reference to view, edit,
+    // and delete all data in your Firestore database. It is useful for getting
+    // started, but it is configured to expire after 30 days because it
+    // leaves your app open to attackers. At that time, all client
+    // requests to your Firestore database will be denied.
+    //
+    // Make sure to write security rules for your app before that time, or else
+    // all client requests to your Firestore database will be denied until you Update
+    // your rules
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2025, 8, 1);
+    }
+  }
+}
 
-      const resposta = {
-        data: dataFormatada,
+    const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+
+    async function salvarRespostas() {
+      const dados = {
+        data: new Date().toLocaleDateString(),
         jogador: document.getElementById('jogador').value,
         tipo: document.getElementById('tipo').value,
-        sono: document.getElementById('sono').value,
-        fadiga: document.getElementById('fadiga').value,
-        dor: document.getElementById('dor').value,
-        stress: document.getElementById('stress').value,
-        saude: document.getElementById('saude').value,
-        humor: document.getElementById('humor').value,
-        motivacao: document.getElementById('motivacao').value
+        sono: parseInt(document.getElementById('sono').value),
+        fadiga: parseInt(document.getElementById('fadiga').value),
+        dor: parseInt(document.getElementById('dor').value),
+        stress: parseInt(document.getElementById('stress').value),
+        saude: parseInt(document.getElementById('saude').value),
+        humor: parseInt(document.getElementById('humor').value),
+        motivacao: parseInt(document.getElementById('motivacao').value),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      db.collection("respostas").add(resposta).then(() => {
-        alert("Respostas enviadas com sucesso!");
-        document.querySelectorAll("input").forEach(el => el.value = "");
-      });
+      // Validação básica
+      for (const key in dados) {
+        if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
+          alert('Por favor, preencha todos os campos corretamente.');
+          return;
+        }
+      }
+
+      try {
+        await db.collection('respostas').add(dados);
+        alert('Respostas salvas com sucesso no Firebase!');
+        document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
+      }
     }
 
-    function pedirSenha() {
+    async function pedirSenha() {
       const senha = prompt("Digite a senha para ver as respostas:");
       if (senha === "admin123") {
-        mostrarTabela();
+        await mostrarRespostas();
       } else {
         alert("Senha incorreta!");
       }
     }
 
-    async function mostrarTabela() {
-      const querySnapshot = await db.collection("respostas").get();
-      const dados = {};
+    async function mostrarRespostas() {
+      const respostasDiv = document.getElementById('respostas');
+      respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
 
-      querySnapshot.forEach(doc => {
-        const r = doc.data();
-        if (!dados[r.data]) dados[r.data] = {};
-        dados[r.data][r.jogador] = r;
-      });
+      try {
+        const snapshot = await db.collection('respostas').orderBy('timestamp', 'desc').get();
+        const dados = snapshot.docs.map(doc => doc.data());
 
-      const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
-      let html = "<h3>Respostas por Dia</h3>";
-      html += '<button onclick="baixarPDF()">Baixar PDF</button>';
+        if (dados.length === 0) {
+          respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
+          return;
+        }
 
-      for (const dia in dados) {
-        html += `<h4>${dia}</h4><table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>`;
-        jogadores.forEach(j => {
-          const r = dados[dia][j];
-          if (r) {
-            html += `<tr><td>${j}</td><td>${r.tipo}</td><td>${r.sono}</td><td>${r.fadiga}</td><td>${r.dor}</td><td>${r.stress}</td><td>${r.saude}</td><td>${r.humor}</td><td>${r.motivacao}</td></tr>`;
-          } else {
-            html += `<tr><td>${j}</td><td colspan="8">Não respondeu</td></tr>`;
-          }
+        // Agrupar por data
+        const agrupadas = {};
+        dados.forEach(r => {
+          if (!agrupadas[r.data]) agrupadas[r.data] = [];
+          agrupadas[r.data].push(r);
         });
-        html += `</tbody></table>`;
+
+        let html = '';
+
+        for (const data of Object.keys(agrupadas)) {
+          html += `<h3>Dia: ${data}</h3>`;
+
+          // Tabela com todos jogadores e suas respostas nesse dia
+          html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
+
+          // Lista dos jogadores que responderam
+          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
+
+          jogadores.forEach(jogador => {
+            const resposta = agrupadas[data].find(r => r.jogador === jogador);
+            if (resposta) {
+              html += `<tr>
+                <td>${jogador}</td>
+                <td>${resposta.tipo}</td>
+                <td>${resposta.sono}</td>
+                <td>${resposta.fadiga}</td>
+                <td>${resposta.dor}</td>
+                <td>${resposta.stress}</td>
+                <td>${resposta.saude}</td>
+                <td>${resposta.humor}</td>
+                <td>${resposta.motivacao}</td>
+              </tr>`;
+            } else {
+              // Jogador não respondeu ainda
+              html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
+            }
+          });
+
+          html += '</tbody></table><br>';
+        }
+
+        respostasDiv.innerHTML = html;
+
+      } catch (err) {
+        respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
       }
-
-      document.getElementById("tabelaRespostas").innerHTML = html;
-    }
-
-    async function baixarPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const querySnapshot = await db.collection("respostas").get();
-      const dados = {};
-
-      querySnapshot.forEach(docSnap => {
-        const r = docSnap.data();
-        if (!dados[r.data]) dados[r.data] = {};
-        dados[r.data][r.jogador] = r;
-      });
-
-      const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
-      let y = 10;
-
-      for (const dia in dados) {
-        doc.setFontSize(14);
-        doc.text(`Dia: ${dia}`, 10, y);
-        y += 8;
-        doc.setFontSize(10);
-        jogadores.forEach(j => {
-          const r = dados[dia][j];
-          const linha = r ? `${j} - ${r.tipo} | Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}` : `${j} - Não respondeu`;
-          doc.text(linha, 10, y);
-          y += 6;
-          if (y > 280) {
-            doc.addPage();
-            y = 10;
-          }
-        });
-        y += 8;
-      }
-
-      doc.save("respostas_por_dia.pdf");
     }
   </script>
 </body>
