@@ -2,7 +2,12 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Questionário Pré-Treino/Jogo - Firebase Modular</title>
+  <title>Questionário Pré-Treino/Jogo - Firebase</title>
+
+  <!-- Firebase SDKs modulares (v9+) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -85,101 +90,108 @@
   <label for="motivacao">Motivação e Entusiasmo para treinar (1-5):</label>
   <input type="number" id="motivacao" min="1" max="5" required>
 
-  <button id="btnSalvar">Enviar Respostas</button>
-  <button id="btnAdmin">Ver Respostas (Admin)</button>
+  <button onclick="salvarRespostas()">Enviar Respostas</button>
+  <button onclick="pedirSenha()">Ver Respostas (Admin)</button>
 
   <div class="respostas" id="respostas"></div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+<script>
+  // Importa as funções da SDK Firebase (modular)
+  const { initializeApp } = firebase;
+  const { getFirestore, collection, addDoc, query, orderBy, getDocs, serverTimestamp } = firebase.firestore;
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
-      authDomain: "questionario-adv.firebaseapp.com",
-      projectId: "questionario-adv",
-      storageBucket: "questionario-adv.firebasestorage.app",
-      messagingSenderId: "17429964397",
-      appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
+  // Config Firebase (sua configuração)
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
+    authDomain: "questionario-adv.firebaseapp.com",
+    projectId: "questionario-adv",
+    storageBucket: "questionario-adv.appspot.com",
+    messagingSenderId: "17429964397",
+    appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
+  };
+
+  // Inicializa Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+
+  async function salvarRespostas() {
+    const dados = {
+      data: new Date().toLocaleDateString(),
+      jogador: document.getElementById('jogador').value,
+      tipo: document.getElementById('tipo').value,
+      sono: parseInt(document.getElementById('sono').value),
+      fadiga: parseInt(document.getElementById('fadiga').value),
+      dor: parseInt(document.getElementById('dor').value),
+      stress: parseInt(document.getElementById('stress').value),
+      saude: parseInt(document.getElementById('saude').value),
+      humor: parseInt(document.getElementById('humor').value),
+      motivacao: parseInt(document.getElementById('motivacao').value),
+      timestamp: serverTimestamp()
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // Validação básica
+    for (const key in dados) {
+      if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
+        alert('Por favor, preencha todos os campos corretamente.');
+        return;
+      }
+    }
 
-    const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+    try {
+      await addDoc(collection(db, "respostas"), dados);
+      alert('Respostas salvas com sucesso no Firebase!');
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+    } catch (err) {
+      alert('Erro ao salvar: ' + err.message);
+    }
+  }
 
-    document.getElementById('btnSalvar').addEventListener('click', async () => {
-      const dados = {
-        data: new Date().toLocaleDateString(),
-        jogador: document.getElementById('jogador').value,
-        tipo: document.getElementById('tipo').value,
-        sono: parseInt(document.getElementById('sono').value),
-        fadiga: parseInt(document.getElementById('fadiga').value),
-        dor: parseInt(document.getElementById('dor').value),
-        stress: parseInt(document.getElementById('stress').value),
-        saude: parseInt(document.getElementById('saude').value),
-        humor: parseInt(document.getElementById('humor').value),
-        motivacao: parseInt(document.getElementById('motivacao').value),
-        timestamp: serverTimestamp()
-      };
+  async function pedirSenha() {
+    const senha = prompt("Digite a senha para ver as respostas:");
+    if (senha === "admin123") {
+      await mostrarRespostas();
+    } else {
+      alert("Senha incorreta!");
+    }
+  }
 
-      // Validação básica
-      for (const key in dados) {
-        if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
-          alert('Por favor, preencha todos os campos corretamente.');
-          return;
-        }
+  async function mostrarRespostas() {
+    const respostasDiv = document.getElementById('respostas');
+    respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
+
+    try {
+      const q = query(collection(db, "respostas"), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      const dados = snapshot.docs.map(doc => doc.data());
+
+      if (dados.length === 0) {
+        respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
+        return;
       }
 
-      try {
-        await addDoc(collection(db, 'respostas'), dados);
-        alert('Respostas salvas com sucesso no Firebase!');
-        document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
-      } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
-      }
-    });
+      // Agrupar por data
+      const agrupadas = {};
+      dados.forEach(r => {
+        if (!agrupadas[r.data]) agrupadas[r.data] = [];
+        agrupadas[r.data].push(r);
+      });
 
-    document.getElementById('btnAdmin').addEventListener('click', async () => {
-      const senha = prompt("Digite a senha para ver as respostas:");
-      if (senha === "admin123") {
-        mostrarRespostas();
-      } else {
-        alert("Senha incorreta!");
-      }
-    });
+      let html = '';
 
-    async function mostrarRespostas() {
-      const respostasDiv = document.getElementById('respostas');
-      respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
+      for (const data of Object.keys(agrupadas)) {
+        html += `<h3>Dia: ${data}</h3>`;
 
-      try {
-        const q = query(collection(db, 'respostas'), orderBy('timestamp', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const dados = querySnapshot.docs.map(doc => doc.data());
+        html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
 
-        if (dados.length === 0) {
-          respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
-          return;
-        }
+        const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
 
-        // Agrupar por data
-        const agrupadas = {};
-        dados.forEach(r => {
-          if (!agrupadas[r.data]) agrupadas[r.data] = [];
-          agrupadas[r.data].push(r);
-        });
-
-        let html = '';
-
-        for (const data of Object.keys(agrupadas)) {
-          html += `<h3>Dia: ${data}</h3>`;
-
-          html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
-
-          agrupadas[data].forEach(resposta => {
+        jogadores.forEach(jogador => {
+          const resposta = agrupadas[data].find(r => r.jogador === jogador);
+          if (resposta) {
             html += `<tr>
-              <td>${resposta.jogador}</td>
+              <td>${jogador}</td>
               <td>${resposta.tipo}</td>
               <td>${resposta.sono}</td>
               <td>${resposta.fadiga}</td>
@@ -189,17 +201,21 @@
               <td>${resposta.humor}</td>
               <td>${resposta.motivacao}</td>
             </tr>`;
-          });
+          } else {
+            html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
+          }
+        });
 
-          html += '</tbody></table><br>';
-        }
-
-        respostasDiv.innerHTML = html;
-
-      } catch (err) {
-        respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
+        html += '</tbody></table><br>';
       }
+
+      respostasDiv.innerHTML = html;
+
+    } catch (err) {
+      respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
