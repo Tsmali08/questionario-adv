@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Questionário Pré-Treino/Jogo</title>
+
+  <!-- jsPDF e AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script type="module">
+  // Import Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // Configuração do Firebase (substitua com seus dados)
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "SEU_AUTH_DOMAIN",
+    projectId: "SEU_PROJECT_ID",
+    storageBucket: "SEU_BUCKET",
+    messagingSenderId: "SEU_MESSAGING_ID",
+    appId: "SEU_APP_ID"
+  };
+
+  // Inicializar Firebase e Firestore
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.salvarRespostas = async function () {
+    const dados = {
+      data: new Date().toLocaleDateString(),
+      jogador: document.getElementById('jogador').value,
+      tipo: document.getElementById('tipo').value,
+      sono: document.getElementById('sono').value,
+      fadiga: document.getElementById('fadiga').value,
+      dor: document.getElementById('dor').value,
+      stress: document.getElementById('stress').value,
+      saude: document.getElementById('saude').value,
+      humor: document.getElementById('humor').value,
+      motivacao: document.getElementById('motivacao').value
+    };
+
+    try {
+      await addDoc(collection(db, "respostas"), dados);
+      alert("Respostas salvas no Firebase!");
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+    } catch (e) {
+      alert("Erro ao salvar: " + e);
+    }
+  };
+
+  window.pedirSenha = async function () {
+    const senha = prompt("Digite a senha para ver as respostas:");
+    if (senha === "admin123") {
+      mostrarRespostas();
+    } else {
+      alert("Senha incorreta!");
+    }
+  };
+
+  window.mostrarRespostas = async function () {
+    const respostasEl = document.getElementById('respostas');
+    const querySnapshot = await getDocs(collection(db, "respostas"));
+    const respostas = [];
+
+    querySnapshot.forEach((docSnap) => {
+      respostas.push({ id: docSnap.id, ...docSnap.data() });
+    });
+
+    let html = "<h3>Respostas Registradas:</h3><ul>";
+    if (respostas.length === 0) {
+      html += "<p>Nenhuma resposta registrada ainda.</p>";
+    } else {
+      respostas.forEach(r => {
+        html += `<li><strong>${r.data}</strong> - ${r.jogador} - ${r.tipo}<br>
+        Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}
+        <span class="delete-btn" onclick="excluirRegistro('${r.id}')">[Eliminar]</span></li><hr>`;
+      });
+    }
+    html += "</ul>";
+    respostasEl.innerHTML = html;
+  };
+
+  window.excluirRegistro = async function (id) {
+    if (confirm("Tem certeza que deseja eliminar este registro?")) {
+      await deleteDoc(doc(db, "respostas", id));
+      mostrarRespostas();
+    }
+  };
+</script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    select, input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px;
+      width: 100%;
+    }
+    .respostas {
+      margin-top: 30px;
+    }
+    .delete-btn {
+      color: red;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="imagens/adv.png" alt="Logo do Clube" style="max-width: 200px; display: block; margin: auto;">
+  <h1>ADV Juniores 2025/2026</h1>
+  <h4>Questionário Pré-Treino/Jogo</h4>
+
+  <label for="jogador">Nome do jogador:</label>
+  <select id="jogador">
+    <option>Diogo Tavares</option>
+    <option>Diogo Bastos</option>
+    <option>Hugo Pinho</option>
+    <option>Rodrigo Matos</option>
+    <option>Rodrigo Almeida</option>
+  </select>
+
+  <label for="tipo">Tipo de atividade:</label>
+  <select id="tipo">
+    <option>Treino</option>
+    <option>Jogo</option>
+  </select>
+
+  <label for="sono">Qualidade do sono (1-5):</label>
+  <input type="number" id="sono" min="1" max="5">
+
+  <label for="fadiga">Fadiga (1-5):</label>
+  <input type="number" id="fadiga" min="1" max="5">
+
+  <label for="dor">Dor muscular (1-5):</label>
+  <input type="number" id="dor" min="1" max="5">
+
+  <label for="stress">Stress (1-5):</label>
+  <input type="number" id="stress" min="1" max="5">
+
+  <label for="saude">Saúde (1-5):</label>
+  <input type="number" id="saude" min="1" max="5">
+
+  <label for="humor">Estado de humor (1-5):</label>
+  <input type="number" id="humor" min="1" max="5">
+
+  <label for="motivacao">Motivação e Entusiasmo para treinar (1-5):</label>
+  <input type="number" id="motivacao" min="1" max="5">
+
+  <button onclick="salvarRespostas()">Enviar Respostas</button>
+  <button onclick="pedirSenha()">Ver Respostas</button>
+
+  <div class="respostas" id="respostas"></div>
+
+  <script>
+    const jogadores = [
+      "Diogo Tavares",
+      "Diogo Bastos",
+      "Hugo Pinho",
+      "Rodrigo Matos",
+      "Rodrigo Almeida"
+    ];
+
+    function salvarRespostas() {
+      const dados = {
+        id: Date.now(),
+        data: new Date().toLocaleDateString(),
+        jogador: document.getElementById('jogador').value,
+        tipo: document.getElementById('tipo').value,
+        sono: document.getElementById('sono').value,
+        fadiga: document.getElementById('fadiga').value,
+        dor: document.getElementById('dor').value,
+        stress: document.getElementById('stress').value,
+        saude: document.getElementById('saude').value,
+        humor: document.getElementById('humor').value,
+        motivacao: document.getElementById('motivacao').value,
+      };
+
+      let respostas = JSON.parse(localStorage.getItem('respostas')) || [];
+      respostas.push(dados);
+      localStorage.setItem('respostas', JSON.stringify(respostas));
+
+      alert('Respostas salvas com sucesso!');
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+    }
+
+    function pedirSenha() {
+      const senha = prompt("Digite a senha para ver as respostas:");
+      if (senha === "admin123") {
+        mostrarRespostas();
+      } else {
+        alert("Senha incorreta!");
+      }
+    }
+
+    function mostrarRespostas() {
+      const respostas = JSON.parse(localStorage.getItem('respostas')) || [];
+      let html = '<h3>Respostas Registradas:</h3>';
+      if (respostas.length === 0) {
+        html += '<p>Nenhuma resposta registrada ainda.</p>';
+      } else {
+        html += '<ul>';
+        respostas.forEach((r) => {
+          html += `<li><strong>${r.data}</strong> - ${r.jogador} - ${r.tipo}<br>
+          Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}
+          <span class="delete-btn" onclick="excluirRegistro(${r.id})">[Eliminar]</span>
+          </li><hr>`;
+        });
+        html += '</ul>';
+        html += '<button onclick="baixarPDF()">Baixar PDF por Dia (Tabela)</button>';
+      }
+      document.getElementById('respostas').innerHTML = html;
+    }
+
+    function excluirRegistro(id) {
+      if (confirm("Tem certeza que deseja eliminar este registro?")) {
+        let respostas = JSON.parse(localStorage.getItem('respostas')) || [];
+        respostas = respostas.filter(r => r.id !== id);
+        localStorage.setItem('respostas', JSON.stringify(respostas));
+        mostrarRespostas();
+      }
+    }
+
+    function baixarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const respostas = JSON.parse(localStorage.getItem('respostas')) || [];
+
+      const agrupadas = {};
+      respostas.forEach(r => {
+        if (!agrupadas[r.data]) agrupadas[r.data] = {};
+        agrupadas[r.data][r.jogador] = r;
+      });
+
+      let primeiraPagina = true;
+
+      Object.keys(agrupadas).forEach(data => {
+        if (!primeiraPagina) doc.addPage();
+        primeiraPagina = false;
+
+        doc.setFontSize(14);
+        doc.text(`Dia: ${data}`, 14, 15);
+
+        const tableData = jogadores.map(jogador => {
+          const r = agrupadas[data][jogador];
+          return [
+            jogador,
+            r ? r.tipo : "—",
+            r ? r.sono : "—",
+            r ? r.fadiga : "—",
+            r ? r.dor : "—",
+            r ? r.stress : "—",
+            r ? r.saude : "—",
+            r ? r.humor : "—",
+            r ? r.motivacao : "—"
+          ];
+        });
+
+        doc.autoTable({
+          startY: 20,
+          head: [[
+            "Jogador", "Tipo", "Sono", "Fadiga", "Dor",
+            "Stress", "Saúde", "Humor", "Motivação"
+          ]],
+          body: tableData,
+          styles: { fontSize: 10 },
+          headStyles: { fillColor: [41, 128, 185] },
+        });
+      });
+
+      doc.save("respostas_por_dia_tabela.pdf");
+    }
+  </script>
+</body>
+</html>
