@@ -47,6 +47,9 @@
     th {
       background-color: #eee;
     }
+    tr.nao-respondeu {
+      background-color: #fdd;
+    }
   </style>
 </head>
 <body>
@@ -96,13 +99,19 @@
   <div class="respostas" id="respostas"></div>
 
   <script>
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
+    // --- CONFIGURE AQUI SUA CONFIGURAÇÃO DO FIREBASE ---
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_AUTH_DOMAIN",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_STORAGE_BUCKET",
+      messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    // Inicializar Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
 
@@ -175,9 +184,6 @@ service cloud.firestore {
           // Tabela com todos jogadores e suas respostas nesse dia
           html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
 
-          // Lista dos jogadores que responderam
-          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
-
           jogadores.forEach(jogador => {
             const resposta = agrupadas[data].find(r => r.jogador === jogador);
             if (resposta) {
@@ -194,7 +200,7 @@ service cloud.firestore {
               </tr>`;
             } else {
               // Jogador não respondeu ainda
-              html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
+              html += `<tr class="nao-respondeu"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
             }
           });
 
