@@ -2,22 +2,17 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Questionário Pré-Treino/Jogo - Firebase</title>
-
-  <!-- Firebase SDKs (Web v9 Modular) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-
+  <title>Questionário ADV Google Sheets</title>
   <style>
     body {
+      max-width: 600px;
+      margin: auto;
       font-family: Arial, sans-serif;
       padding: 20px;
-      max-width: 700px;
-      margin: auto;
     }
     label {
       display: block;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     select, input[type="number"] {
       width: 100%;
@@ -27,37 +22,19 @@
     }
     button {
       margin-top: 20px;
-      padding: 10px;
+      padding: 12px;
       width: 100%;
       cursor: pointer;
-    }
-    .respostas {
-      margin-top: 30px;
-      overflow-x: auto;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-    th, td {
-      border: 1px solid #333;
-      padding: 6px;
-      text-align: center;
-    }
-    th {
-      background-color: #eee;
-    }
-    tr.nao-respondeu td {
-      background: #fdd;
-      color: #900;
-      font-style: italic;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-
-  <h1>ADV Juniores 2025/2026</h1>
-  <h4>Questionário Pré-Treino/Jogo</h4>
+  <h1>Questionário Pré-Treino/Jogo</h1>
 
   <label for="jogador">Nome do jogador:</label>
   <select id="jogador">
@@ -95,31 +72,13 @@
   <label for="motivacao">Motivação e Entusiasmo para treinar (1-5):</label>
   <input type="number" id="motivacao" min="1" max="5" required>
 
-  <button onclick="salvarRespostas()">Enviar Respostas</button>
-  <button onclick="pedirSenha()">Ver Respostas (Admin)</button>
-
-  <div class="respostas" id="respostas"></div>
+  <button onclick="enviar()">Enviar</button>
 
   <script>
-    // Config Firebase (coloque os seus dados aqui)
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
-      authDomain: "questionario-adv.firebaseapp.com",
-      projectId: "questionario-adv",
-      storageBucket: "questionario-adv.appspot.com",
-      messagingSenderId: "17429964397",
-      appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
-    };
+    const URL_WEBAPP = 'COLE_AQUI_O_URL_DO_SEU_WEBAPP';
 
-    // Inicializa Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore.getFirestore(app);
-
-    const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
-
-    async function salvarRespostas() {
+    async function enviar() {
       const dados = {
-        data: new Date().toLocaleDateString(),
         jogador: document.getElementById('jogador').value,
         tipo: document.getElementById('tipo').value,
         sono: parseInt(document.getElementById('sono').value),
@@ -128,95 +87,29 @@
         stress: parseInt(document.getElementById('stress').value),
         saude: parseInt(document.getElementById('saude').value),
         humor: parseInt(document.getElementById('humor').value),
-        motivacao: parseInt(document.getElementById('motivacao').value),
-        timestamp: firebase.firestore.serverTimestamp()
+        motivacao: parseInt(document.getElementById('motivacao').value)
       };
 
-      // Validação básica
-      for (const key in dados) {
-        if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
-          alert('Por favor, preencha todos os campos corretamente.');
-          return;
-        }
-      }
-
       try {
-        await firebase.firestore.addDoc(firebase.firestore.collection(db, 'respostas'), dados);
-        alert('Respostas salvas com sucesso no Firebase!');
-        document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
-      } catch (err) {
-        alert('Erro ao salvar: ' + err.message);
-      }
-    }
-
-    async function pedirSenha() {
-      const senha = prompt("Digite a senha para ver as respostas:");
-      if (senha === "admin123") {
-        await mostrarRespostas();
-      } else {
-        alert("Senha incorreta!");
-      }
-    }
-
-    async function mostrarRespostas() {
-      const respostasDiv = document.getElementById('respostas');
-      respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
-
-      try {
-        const q = firebase.firestore.query(
-          firebase.firestore.collection(db, 'respostas'),
-          firebase.firestore.orderBy('timestamp', 'desc')
-        );
-        const snapshot = await firebase.firestore.getDocs(q);
-        const dados = snapshot.docs.map(doc => doc.data());
-
-        if (dados.length === 0) {
-          respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
-          return;
-        }
-
-        // Agrupar por data
-        const agrupadas = {};
-        dados.forEach(r => {
-          if (!agrupadas[r.data]) agrupadas[r.data] = [];
-          agrupadas[r.data].push(r);
+        const resposta = await fetch(URL_WEBAPP, {
+          method: 'POST',
+          body: JSON.stringify(dados),
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
-        let html = '';
+        const json = await resposta.json();
 
-        for (const data of Object.keys(agrupadas)) {
-          html += `<h3>Dia: ${data}</h3>`;
-
-          html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
-
-          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
-
-          jogadores.forEach(jogador => {
-            const resposta = agrupadas[data].find(r => r.jogador === jogador);
-            if (resposta) {
-              html += `<tr>
-                <td>${jogador}</td>
-                <td>${resposta.tipo}</td>
-                <td>${resposta.sono}</td>
-                <td>${resposta.fadiga}</td>
-                <td>${resposta.dor}</td>
-                <td>${resposta.stress}</td>
-                <td>${resposta.saude}</td>
-                <td>${resposta.humor}</td>
-                <td>${resposta.motivacao}</td>
-              </tr>`;
-            } else {
-              html += `<tr class="nao-respondeu"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
-            }
-          });
-
-          html += '</tbody></table><br>';
+        if (json.result === 'sucesso') {
+          alert('Respostas salvas com sucesso!');
+          // limpa os inputs
+          document.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
+        } else {
+          alert('Erro ao salvar: ' + json.message);
         }
-
-        respostasDiv.innerHTML = html;
-
-      } catch (err) {
-        respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
+      } catch (error) {
+        alert('Erro ao enviar dados: ' + error.message);
       }
     }
   </script>
