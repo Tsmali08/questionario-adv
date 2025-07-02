@@ -96,17 +96,18 @@
   <div class="respostas" id="respostas"></div>
 
   <script>
-    // CONFIGURAÇÃO DO FIREBASE - Substitua pelos seus dados!
-   const firebaseConfig = {
-      apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
-      authDomain: "questionario-adv.firebaseapp.com",
-      projectId: "questionario-adv",
-      storageBucket: "questionario-adv.firebasestorage.app",
-      messagingSenderId: "17429964397",
-      appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
-    };
-    // Inicializa Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    // Coloque aqui as suas configurações do Firebase (substitua as strings pelos seus dados)
+    const firebaseConfig = {
+  apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
+  authDomain: "questionario-adv.firebaseapp.com",
+  projectId: "questionario-adv",
+  storageBucket: "questionario-adv.firebasestorage.app",
+  messagingSenderId: "17429964397",
+  appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
+};
+
+    // Inicializa o Firebase (modo compat - namespace)
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
@@ -213,5 +214,6 @@
       }
     }
   </script>
+
 </body>
 </html>
