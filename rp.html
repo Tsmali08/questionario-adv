@@ -99,8 +99,13 @@
   <div class="respostas" id="respostas"></div>
 
   <script>
-    // --- CONFIGURE AQUI SUA CONFIGURAÇÃO DO FIREBASE ---
-    const firebaseConfig = {
+    // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
   apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
   authDomain: "questionario-adv.firebaseapp.com",
   projectId: "questionario-adv",
@@ -109,9 +114,8 @@
   appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
 };
 
-    // Inicializar Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
     const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
 
