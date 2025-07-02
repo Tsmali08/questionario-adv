@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Questionário Pré-Treino/Jogo - Firebase</title>
 
-  <!-- Firebase SDKs modulares (v9+) -->
+  <!-- Firebase SDKs (Web v9 Modular) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
 
@@ -46,6 +46,11 @@
     }
     th {
       background-color: #eee;
+    }
+    tr.nao-respondeu td {
+      background: #fdd;
+      color: #900;
+      font-style: italic;
     }
   </style>
 </head>
@@ -95,127 +100,125 @@
 
   <div class="respostas" id="respostas"></div>
 
-<script>
-  // Importa as funções da SDK Firebase (modular)
-  const { initializeApp } = firebase;
-  const { getFirestore, collection, addDoc, query, orderBy, getDocs, serverTimestamp } = firebase.firestore;
-
-  // Config Firebase (sua configuração)
-  const firebaseConfig = {
-    apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
-    authDomain: "questionario-adv.firebaseapp.com",
-    projectId: "questionario-adv",
-    storageBucket: "questionario-adv.appspot.com",
-    messagingSenderId: "17429964397",
-    appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
-  };
-
-  // Inicializa Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
-
-  async function salvarRespostas() {
-    const dados = {
-      data: new Date().toLocaleDateString(),
-      jogador: document.getElementById('jogador').value,
-      tipo: document.getElementById('tipo').value,
-      sono: parseInt(document.getElementById('sono').value),
-      fadiga: parseInt(document.getElementById('fadiga').value),
-      dor: parseInt(document.getElementById('dor').value),
-      stress: parseInt(document.getElementById('stress').value),
-      saude: parseInt(document.getElementById('saude').value),
-      humor: parseInt(document.getElementById('humor').value),
-      motivacao: parseInt(document.getElementById('motivacao').value),
-      timestamp: serverTimestamp()
+  <script>
+    // Config Firebase (coloque os seus dados aqui)
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
+      authDomain: "questionario-adv.firebaseapp.com",
+      projectId: "questionario-adv",
+      storageBucket: "questionario-adv.appspot.com",
+      messagingSenderId: "17429964397",
+      appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
     };
 
-    // Validação básica
-    for (const key in dados) {
-      if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
-        alert('Por favor, preencha todos os campos corretamente.');
-        return;
+    // Inicializa Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore.getFirestore(app);
+
+    const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+
+    async function salvarRespostas() {
+      const dados = {
+        data: new Date().toLocaleDateString(),
+        jogador: document.getElementById('jogador').value,
+        tipo: document.getElementById('tipo').value,
+        sono: parseInt(document.getElementById('sono').value),
+        fadiga: parseInt(document.getElementById('fadiga').value),
+        dor: parseInt(document.getElementById('dor').value),
+        stress: parseInt(document.getElementById('stress').value),
+        saude: parseInt(document.getElementById('saude').value),
+        humor: parseInt(document.getElementById('humor').value),
+        motivacao: parseInt(document.getElementById('motivacao').value),
+        timestamp: firebase.firestore.serverTimestamp()
+      };
+
+      // Validação básica
+      for (const key in dados) {
+        if (dados[key] === null || dados[key] === undefined || dados[key] === "" || Number.isNaN(dados[key])) {
+          alert('Por favor, preencha todos os campos corretamente.');
+          return;
+        }
+      }
+
+      try {
+        await firebase.firestore.addDoc(firebase.firestore.collection(db, 'respostas'), dados);
+        alert('Respostas salvas com sucesso no Firebase!');
+        document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+      } catch (err) {
+        alert('Erro ao salvar: ' + err.message);
       }
     }
 
-    try {
-      await addDoc(collection(db, "respostas"), dados);
-      alert('Respostas salvas com sucesso no Firebase!');
-      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
-    } catch (err) {
-      alert('Erro ao salvar: ' + err.message);
-    }
-  }
-
-  async function pedirSenha() {
-    const senha = prompt("Digite a senha para ver as respostas:");
-    if (senha === "admin123") {
-      await mostrarRespostas();
-    } else {
-      alert("Senha incorreta!");
-    }
-  }
-
-  async function mostrarRespostas() {
-    const respostasDiv = document.getElementById('respostas');
-    respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
-
-    try {
-      const q = query(collection(db, "respostas"), orderBy("timestamp", "desc"));
-      const snapshot = await getDocs(q);
-      const dados = snapshot.docs.map(doc => doc.data());
-
-      if (dados.length === 0) {
-        respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
-        return;
+    async function pedirSenha() {
+      const senha = prompt("Digite a senha para ver as respostas:");
+      if (senha === "admin123") {
+        await mostrarRespostas();
+      } else {
+        alert("Senha incorreta!");
       }
+    }
 
-      // Agrupar por data
-      const agrupadas = {};
-      dados.forEach(r => {
-        if (!agrupadas[r.data]) agrupadas[r.data] = [];
-        agrupadas[r.data].push(r);
-      });
+    async function mostrarRespostas() {
+      const respostasDiv = document.getElementById('respostas');
+      respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
 
-      let html = '';
+      try {
+        const q = firebase.firestore.query(
+          firebase.firestore.collection(db, 'respostas'),
+          firebase.firestore.orderBy('timestamp', 'desc')
+        );
+        const snapshot = await firebase.firestore.getDocs(q);
+        const dados = snapshot.docs.map(doc => doc.data());
 
-      for (const data of Object.keys(agrupadas)) {
-        html += `<h3>Dia: ${data}</h3>`;
+        if (dados.length === 0) {
+          respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
+          return;
+        }
 
-        html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
-
-        const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
-
-        jogadores.forEach(jogador => {
-          const resposta = agrupadas[data].find(r => r.jogador === jogador);
-          if (resposta) {
-            html += `<tr>
-              <td>${jogador}</td>
-              <td>${resposta.tipo}</td>
-              <td>${resposta.sono}</td>
-              <td>${resposta.fadiga}</td>
-              <td>${resposta.dor}</td>
-              <td>${resposta.stress}</td>
-              <td>${resposta.saude}</td>
-              <td>${resposta.humor}</td>
-              <td>${resposta.motivacao}</td>
-            </tr>`;
-          } else {
-            html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
-          }
+        // Agrupar por data
+        const agrupadas = {};
+        dados.forEach(r => {
+          if (!agrupadas[r.data]) agrupadas[r.data] = [];
+          agrupadas[r.data].push(r);
         });
 
-        html += '</tbody></table><br>';
+        let html = '';
+
+        for (const data of Object.keys(agrupadas)) {
+          html += `<h3>Dia: ${data}</h3>`;
+
+          html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
+
+          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
+
+          jogadores.forEach(jogador => {
+            const resposta = agrupadas[data].find(r => r.jogador === jogador);
+            if (resposta) {
+              html += `<tr>
+                <td>${jogador}</td>
+                <td>${resposta.tipo}</td>
+                <td>${resposta.sono}</td>
+                <td>${resposta.fadiga}</td>
+                <td>${resposta.dor}</td>
+                <td>${resposta.stress}</td>
+                <td>${resposta.saude}</td>
+                <td>${resposta.humor}</td>
+                <td>${resposta.motivacao}</td>
+              </tr>`;
+            } else {
+              html += `<tr class="nao-respondeu"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
+            }
+          });
+
+          html += '</tbody></table><br>';
+        }
+
+        respostasDiv.innerHTML = html;
+
+      } catch (err) {
+        respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
       }
-
-      respostasDiv.innerHTML = html;
-
-    } catch (err) {
-      respostasDiv.innerHTML = 'Erro ao carregar respostas: ' + err.message;
     }
-  }
-</script>
-
+  </script>
 </body>
 </html>
