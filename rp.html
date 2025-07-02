@@ -47,9 +47,6 @@
     th {
       background-color: #eee;
     }
-    tr.nao-respondeu {
-      background-color: #fdd;
-    }
   </style>
 </head>
 <body>
@@ -99,13 +96,8 @@
   <div class="respostas" id="respostas"></div>
 
   <script>
-    // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
+    // CONFIGURAÇÃO DO FIREBASE - Substitua pelos seus dados!
+    const firebaseConfig = {
   apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
   authDomain: "questionario-adv.firebaseapp.com",
   projectId: "questionario-adv",
@@ -113,9 +105,9 @@ const firebaseConfig = {
   messagingSenderId: "17429964397",
   appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+    // Inicializa Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
 
@@ -188,6 +180,9 @@ const app = initializeApp(firebaseConfig);
           // Tabela com todos jogadores e suas respostas nesse dia
           html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
 
+          // Lista dos jogadores que responderam
+          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
+
           jogadores.forEach(jogador => {
             const resposta = agrupadas[data].find(r => r.jogador === jogador);
             if (resposta) {
@@ -204,7 +199,7 @@ const app = initializeApp(firebaseConfig);
               </tr>`;
             } else {
               // Jogador não respondeu ainda
-              html += `<tr class="nao-respondeu"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
+              html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
             }
           });
 
