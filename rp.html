@@ -2,12 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Questionário Pré-Treino/Jogo - Firebase</title>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-
+  <title>Questionário Pré-Treino/Jogo - Firebase Modular</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -90,29 +85,30 @@
   <label for="motivacao">Motivação e Entusiasmo para treinar (1-5):</label>
   <input type="number" id="motivacao" min="1" max="5" required>
 
-  <button onclick="salvarRespostas()">Enviar Respostas</button>
-  <button onclick="pedirSenha()">Ver Respostas (Admin)</button>
+  <button id="btnSalvar">Enviar Respostas</button>
+  <button id="btnAdmin">Ver Respostas (Admin)</button>
 
   <div class="respostas" id="respostas"></div>
 
-  <script>
-    // Coloque aqui as suas configurações do Firebase (substitua as strings pelos seus dados)
-   const firebaseConfig = {
-  apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
-  authDomain: "questionario-adv.firebaseapp.com",
-  projectId: "questionario-adv",
-  storageBucket: "questionario-adv.firebasestorage.app",
-  messagingSenderId: "17429964397",
-  appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
-};
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // Inicializa o Firebase (modo compat - namespace)
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-rJOeMOEor8bhVNwFlGkQyydTSl6liUU",
+      authDomain: "questionario-adv.firebaseapp.com",
+      projectId: "questionario-adv",
+      storageBucket: "questionario-adv.firebasestorage.app",
+      messagingSenderId: "17429964397",
+      appId: "1:17429964397:web:dfe6d7cd562635ccdc8164"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
 
-    async function salvarRespostas() {
+    document.getElementById('btnSalvar').addEventListener('click', async () => {
       const dados = {
         data: new Date().toLocaleDateString(),
         jogador: document.getElementById('jogador').value,
@@ -124,7 +120,7 @@
         saude: parseInt(document.getElementById('saude').value),
         humor: parseInt(document.getElementById('humor').value),
         motivacao: parseInt(document.getElementById('motivacao').value),
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        timestamp: serverTimestamp()
       };
 
       // Validação básica
@@ -136,30 +132,31 @@
       }
 
       try {
-        await db.collection('respostas').add(dados);
+        await addDoc(collection(db, 'respostas'), dados);
         alert('Respostas salvas com sucesso no Firebase!');
         document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
       } catch (err) {
         alert('Erro ao salvar: ' + err.message);
       }
-    }
+    });
 
-    async function pedirSenha() {
+    document.getElementById('btnAdmin').addEventListener('click', async () => {
       const senha = prompt("Digite a senha para ver as respostas:");
       if (senha === "admin123") {
-        await mostrarRespostas();
+        mostrarRespostas();
       } else {
         alert("Senha incorreta!");
       }
-    }
+    });
 
     async function mostrarRespostas() {
       const respostasDiv = document.getElementById('respostas');
       respostasDiv.innerHTML = '<p>Carregando respostas...</p>';
 
       try {
-        const snapshot = await db.collection('respostas').orderBy('timestamp', 'desc').get();
-        const dados = snapshot.docs.map(doc => doc.data());
+        const q = query(collection(db, 'respostas'), orderBy('timestamp', 'desc'));
+        const querySnapshot = await getDocs(q);
+        const dados = querySnapshot.docs.map(doc => doc.data());
 
         if (dados.length === 0) {
           respostasDiv.innerHTML = '<p>Nenhuma resposta registrada ainda.</p>';
@@ -178,30 +175,20 @@
         for (const data of Object.keys(agrupadas)) {
           html += `<h3>Dia: ${data}</h3>`;
 
-          // Tabela com todos jogadores e suas respostas nesse dia
           html += '<table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>';
 
-          // Lista dos jogadores que responderam
-          const jogadoresQueResponderam = agrupadas[data].map(r => r.jogador);
-
-          jogadores.forEach(jogador => {
-            const resposta = agrupadas[data].find(r => r.jogador === jogador);
-            if (resposta) {
-              html += `<tr>
-                <td>${jogador}</td>
-                <td>${resposta.tipo}</td>
-                <td>${resposta.sono}</td>
-                <td>${resposta.fadiga}</td>
-                <td>${resposta.dor}</td>
-                <td>${resposta.stress}</td>
-                <td>${resposta.saude}</td>
-                <td>${resposta.humor}</td>
-                <td>${resposta.motivacao}</td>
-              </tr>`;
-            } else {
-              // Jogador não respondeu ainda
-              html += `<tr style="background:#fdd"><td>${jogador}</td><td colspan="8">Ainda não respondeu</td></tr>`;
-            }
+          agrupadas[data].forEach(resposta => {
+            html += `<tr>
+              <td>${resposta.jogador}</td>
+              <td>${resposta.tipo}</td>
+              <td>${resposta.sono}</td>
+              <td>${resposta.fadiga}</td>
+              <td>${resposta.dor}</td>
+              <td>${resposta.stress}</td>
+              <td>${resposta.saude}</td>
+              <td>${resposta.humor}</td>
+              <td>${resposta.motivacao}</td>
+            </tr>`;
           });
 
           html += '</tbody></table><br>';
@@ -214,6 +201,5 @@
       }
     }
   </script>
-
 </body>
 </html>
