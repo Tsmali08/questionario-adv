@@ -1,98 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Questionário Pré-Treino/Jogo</title>
-
-  <!-- jsPDF e AutoTable -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-<script type="module">
-  // Import Firebase SDK
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  // Configuração do Firebase (substitua com seus dados)
-  const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_AUTH_DOMAIN",
-    projectId: "SEU_PROJECT_ID",
-    storageBucket: "SEU_BUCKET",
-    messagingSenderId: "SEU_MESSAGING_ID",
-    appId: "SEU_APP_ID"
-  };
-
-  // Inicializar Firebase e Firestore
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  window.salvarRespostas = async function () {
-    const dados = {
-      data: new Date().toLocaleDateString(),
-      jogador: document.getElementById('jogador').value,
-      tipo: document.getElementById('tipo').value,
-      sono: document.getElementById('sono').value,
-      fadiga: document.getElementById('fadiga').value,
-      dor: document.getElementById('dor').value,
-      stress: document.getElementById('stress').value,
-      saude: document.getElementById('saude').value,
-      humor: document.getElementById('humor').value,
-      motivacao: document.getElementById('motivacao').value
-    };
-
-    try {
-      await addDoc(collection(db, "respostas"), dados);
-      alert("Respostas salvas no Firebase!");
-      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
-    } catch (e) {
-      alert("Erro ao salvar: " + e);
-    }
-  };
-
-  window.pedirSenha = async function () {
-    const senha = prompt("Digite a senha para ver as respostas:");
-    if (senha === "admin123") {
-      mostrarRespostas();
-    } else {
-      alert("Senha incorreta!");
-    }
-  };
-
-  window.mostrarRespostas = async function () {
-    const respostasEl = document.getElementById('respostas');
-    const querySnapshot = await getDocs(collection(db, "respostas"));
-    const respostas = [];
-
-    querySnapshot.forEach((docSnap) => {
-      respostas.push({ id: docSnap.id, ...docSnap.data() });
-    });
-
-    let html = "<h3>Respostas Registradas:</h3><ul>";
-    if (respostas.length === 0) {
-      html += "<p>Nenhuma resposta registrada ainda.</p>";
-    } else {
-      respostas.forEach(r => {
-        html += `<li><strong>${r.data}</strong> - ${r.jogador} - ${r.tipo}<br>
-        Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}
-        <span class="delete-btn" onclick="excluirRegistro('${r.id}')">[Eliminar]</span></li><hr>`;
-      });
-    }
-    html += "</ul>";
-    respostasEl.innerHTML = html;
-  };
-
-  window.excluirRegistro = async function (id) {
-    if (confirm("Tem certeza que deseja eliminar este registro?")) {
-      await deleteDoc(doc(db, "respostas", id));
-      mostrarRespostas();
-    }
-  };
-</script>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-      max-width: 600px;
+      max-width: 900px;
       margin: auto;
     }
     label {
@@ -109,18 +27,26 @@
       padding: 10px;
       width: 100%;
     }
-    .respostas {
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 30px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background-color: #eee;
     }
     .delete-btn {
       color: red;
       cursor: pointer;
-      margin-left: 10px;
     }
   </style>
 </head>
 <body>
-
   <img src="imagens/adv.png" alt="Logo do Clube" style="max-width: 200px; display: block; margin: auto;">
   <h1>ADV Juniores 2025/2026</h1>
   <h4>Questionário Pré-Treino/Jogo</h4>
@@ -141,44 +67,51 @@
   </select>
 
   <label for="sono">Qualidade do sono (1-5):</label>
-  <input type="number" id="sono" min="1" max="5">
+  <input type="number" id="sono" min="1" max="5" required>
 
   <label for="fadiga">Fadiga (1-5):</label>
-  <input type="number" id="fadiga" min="1" max="5">
+  <input type="number" id="fadiga" min="1" max="5" required>
 
   <label for="dor">Dor muscular (1-5):</label>
-  <input type="number" id="dor" min="1" max="5">
+  <input type="number" id="dor" min="1" max="5" required>
 
   <label for="stress">Stress (1-5):</label>
-  <input type="number" id="stress" min="1" max="5">
+  <input type="number" id="stress" min="1" max="5" required>
 
   <label for="saude">Saúde (1-5):</label>
-  <input type="number" id="saude" min="1" max="5">
+  <input type="number" id="saude" min="1" max="5" required>
 
   <label for="humor">Estado de humor (1-5):</label>
-  <input type="number" id="humor" min="1" max="5">
+  <input type="number" id="humor" min="1" max="5" required>
 
   <label for="motivacao">Motivação e Entusiasmo para treinar (1-5):</label>
-  <input type="number" id="motivacao" min="1" max="5">
+  <input type="number" id="motivacao" min="1" max="5" required>
 
   <button onclick="salvarRespostas()">Enviar Respostas</button>
-  <button onclick="pedirSenha()">Ver Respostas</button>
+  <button onclick="pedirSenha()">Ver Respostas (Admin)</button>
 
-  <div class="respostas" id="respostas"></div>
+  <div id="tabelaRespostas"></div>
 
   <script>
-    const jogadores = [
-      "Diogo Tavares",
-      "Diogo Bastos",
-      "Hugo Pinho",
-      "Rodrigo Matos",
-      "Rodrigo Almeida"
-    ];
+    // CONFIGURE AQUI O SEU FIREBASE
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_DOMINIO.firebaseapp.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_BUCKET.appspot.com",
+      messagingSenderId: "SEU_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     function salvarRespostas() {
-      const dados = {
-        id: Date.now(),
-        data: new Date().toLocaleDateString(),
+      const data = new Date();
+      const dataFormatada = data.toLocaleDateString('pt-PT');
+
+      const resposta = {
+        data: dataFormatada,
         jogador: document.getElementById('jogador').value,
         tipo: document.getElementById('tipo').value,
         sono: document.getElementById('sono').value,
@@ -187,102 +120,88 @@
         stress: document.getElementById('stress').value,
         saude: document.getElementById('saude').value,
         humor: document.getElementById('humor').value,
-        motivacao: document.getElementById('motivacao').value,
+        motivacao: document.getElementById('motivacao').value
       };
 
-      let respostas = JSON.parse(localStorage.getItem('respostas')) || [];
-      respostas.push(dados);
-      localStorage.setItem('respostas', JSON.stringify(respostas));
-
-      alert('Respostas salvas com sucesso!');
-      document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+      db.collection("respostas").add(resposta).then(() => {
+        alert("Respostas enviadas com sucesso!");
+        document.querySelectorAll("input").forEach(el => el.value = "");
+      });
     }
 
     function pedirSenha() {
       const senha = prompt("Digite a senha para ver as respostas:");
       if (senha === "admin123") {
-        mostrarRespostas();
+        mostrarTabela();
       } else {
         alert("Senha incorreta!");
       }
     }
 
-    function mostrarRespostas() {
-      const respostas = JSON.parse(localStorage.getItem('respostas')) || [];
-      let html = '<h3>Respostas Registradas:</h3>';
-      if (respostas.length === 0) {
-        html += '<p>Nenhuma resposta registrada ainda.</p>';
-      } else {
-        html += '<ul>';
-        respostas.forEach((r) => {
-          html += `<li><strong>${r.data}</strong> - ${r.jogador} - ${r.tipo}<br>
-          Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}
-          <span class="delete-btn" onclick="excluirRegistro(${r.id})">[Eliminar]</span>
-          </li><hr>`;
+    async function mostrarTabela() {
+      const querySnapshot = await db.collection("respostas").get();
+      const dados = {};
+
+      querySnapshot.forEach(doc => {
+        const r = doc.data();
+        if (!dados[r.data]) dados[r.data] = {};
+        dados[r.data][r.jogador] = r;
+      });
+
+      const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+      let html = "<h3>Respostas por Dia</h3>";
+      html += '<button onclick="baixarPDF()">Baixar PDF</button>';
+
+      for (const dia in dados) {
+        html += `<h4>${dia}</h4><table><thead><tr><th>Jogador</th><th>Tipo</th><th>Sono</th><th>Fadiga</th><th>Dor</th><th>Stress</th><th>Saúde</th><th>Humor</th><th>Motivação</th></tr></thead><tbody>`;
+        jogadores.forEach(j => {
+          const r = dados[dia][j];
+          if (r) {
+            html += `<tr><td>${j}</td><td>${r.tipo}</td><td>${r.sono}</td><td>${r.fadiga}</td><td>${r.dor}</td><td>${r.stress}</td><td>${r.saude}</td><td>${r.humor}</td><td>${r.motivacao}</td></tr>`;
+          } else {
+            html += `<tr><td>${j}</td><td colspan="8">Não respondeu</td></tr>`;
+          }
         });
-        html += '</ul>';
-        html += '<button onclick="baixarPDF()">Baixar PDF por Dia (Tabela)</button>';
+        html += `</tbody></table>`;
       }
-      document.getElementById('respostas').innerHTML = html;
+
+      document.getElementById("tabelaRespostas").innerHTML = html;
     }
 
-    function excluirRegistro(id) {
-      if (confirm("Tem certeza que deseja eliminar este registro?")) {
-        let respostas = JSON.parse(localStorage.getItem('respostas')) || [];
-        respostas = respostas.filter(r => r.id !== id);
-        localStorage.setItem('respostas', JSON.stringify(respostas));
-        mostrarRespostas();
-      }
-    }
-
-    function baixarPDF() {
+    async function baixarPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      const respostas = JSON.parse(localStorage.getItem('respostas')) || [];
+      const querySnapshot = await db.collection("respostas").get();
+      const dados = {};
 
-      const agrupadas = {};
-      respostas.forEach(r => {
-        if (!agrupadas[r.data]) agrupadas[r.data] = {};
-        agrupadas[r.data][r.jogador] = r;
+      querySnapshot.forEach(docSnap => {
+        const r = docSnap.data();
+        if (!dados[r.data]) dados[r.data] = {};
+        dados[r.data][r.jogador] = r;
       });
 
-      let primeiraPagina = true;
+      const jogadores = ["Diogo Tavares", "Diogo Bastos", "Hugo Pinho", "Rodrigo Matos", "Rodrigo Almeida"];
+      let y = 10;
 
-      Object.keys(agrupadas).forEach(data => {
-        if (!primeiraPagina) doc.addPage();
-        primeiraPagina = false;
-
+      for (const dia in dados) {
         doc.setFontSize(14);
-        doc.text(`Dia: ${data}`, 14, 15);
-
-        const tableData = jogadores.map(jogador => {
-          const r = agrupadas[data][jogador];
-          return [
-            jogador,
-            r ? r.tipo : "—",
-            r ? r.sono : "—",
-            r ? r.fadiga : "—",
-            r ? r.dor : "—",
-            r ? r.stress : "—",
-            r ? r.saude : "—",
-            r ? r.humor : "—",
-            r ? r.motivacao : "—"
-          ];
+        doc.text(`Dia: ${dia}`, 10, y);
+        y += 8;
+        doc.setFontSize(10);
+        jogadores.forEach(j => {
+          const r = dados[dia][j];
+          const linha = r ? `${j} - ${r.tipo} | Sono: ${r.sono}, Fadiga: ${r.fadiga}, Dor: ${r.dor}, Stress: ${r.stress}, Saúde: ${r.saude}, Humor: ${r.humor}, Motivação: ${r.motivacao}` : `${j} - Não respondeu`;
+          doc.text(linha, 10, y);
+          y += 6;
+          if (y > 280) {
+            doc.addPage();
+            y = 10;
+          }
         });
+        y += 8;
+      }
 
-        doc.autoTable({
-          startY: 20,
-          head: [[
-            "Jogador", "Tipo", "Sono", "Fadiga", "Dor",
-            "Stress", "Saúde", "Humor", "Motivação"
-          ]],
-          body: tableData,
-          styles: { fontSize: 10 },
-          headStyles: { fillColor: [41, 128, 185] },
-        });
-      });
-
-      doc.save("respostas_por_dia_tabela.pdf");
+      doc.save("respostas_por_dia.pdf");
     }
   </script>
 </body>
